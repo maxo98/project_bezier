@@ -19,15 +19,11 @@ public class CastelJaun : MonoBehaviour
     private LineRenderer controlPointLineRenderer;
     [SerializeField]
     private LineRenderer bezierLineRenderer;
-    
-    private void Start()
-    {
-        GetCastelJaun();
-    }
 
     private void GetCastelJaun()
     {
-        for (float t = 0; t <= 1 ; t += 1/(float)k)
+        bezierSpleen.Clear();
+        for (float t = 0; t < 1 ; t += 1/(float)k)
         {
             _temporaryPoints.Clear();
             _temporaryPoints.Add(controlPoints);
@@ -43,7 +39,13 @@ public class CastelJaun : MonoBehaviour
             }
             bezierSpleen.Add(_temporaryPoints[controlPoints.Count - 1][_temporaryPoints[controlPoints.Count - 1].Count - 1]);
         }
+        bezierSpleen.Add(controlPoints[controlPoints.Count - 1]);
+    }
 
+    private void renderCurves()
+    {
+        controlPointLineRenderer.positionCount = 0;
+        bezierLineRenderer.positionCount = 0;
         for (var i = 0; i < controlPoints.Count; i++)
         {
             controlPointLineRenderer.positionCount = controlPoints.Count;
@@ -55,7 +57,23 @@ public class CastelJaun : MonoBehaviour
             bezierLineRenderer.positionCount = bezierSpleen.Count;
             bezierLineRenderer.SetPosition(i, bezierSpleen[i]);
         }
-        
     }
     
+    
+    public void AddControlPoint(Vector3 point)
+    {
+        point.z = 0;
+        controlPoints.Add(point);
+        if (controlPoints.Count <= 2) return;
+        GetCastelJaun();
+        renderCurves();
+    }
+
+    public void ChangeStep(bool step)
+    {
+        k = step ? k + 1 : k - 1;
+        if (controlPoints.Count <= 2) return;
+        GetCastelJaun();
+        renderCurves();
+    }
 }
