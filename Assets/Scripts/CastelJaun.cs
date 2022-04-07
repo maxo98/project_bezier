@@ -6,56 +6,54 @@ using UnityEngine.Serialization;
 
 public class CastelJaun : MonoBehaviour
 {
-    [SerializeField] private Vector3[] controlPoints;
-     private Vector3[][] temporaryPoints = new Vector3[10][];
+    [SerializeField] private List<Vector3> controlPoints; 
+    private List<List<Vector3>> _temporaryPoints = new List<List<Vector3>>();
 
-     [SerializeField]private List<Vector3> bezierSpleen = new List<Vector3>();
+    [SerializeField]
+    private List<Vector3> bezierSpleen = new List<Vector3>();
 
     [SerializeField] 
     private int k;
 
     [SerializeField] 
-    private LineRenderer lineRenderer;
-
-    private bool _doOnce = true;
-
+    private LineRenderer controlPointLineRenderer;
+    [SerializeField]
+    private LineRenderer bezierLineRenderer;
+    
     private void Start()
     {
-        temporaryPoints[0] = controlPoints;
-        
-    }
-
-    private void Update()
-    {
-        if (!_doOnce) return;
-        _doOnce = false;
         GetCastelJaun();
-        
     }
 
     private void GetCastelJaun()
     {
-        for (float t = 0; t < 1; t += 1/(float)k)
+        for (float t = 0; t <= 1 ; t += 1/(float)k)
         {
-            var max = 0;
-            for (var j = 1; j < controlPoints.Length; j++)
+            _temporaryPoints.Clear();
+            _temporaryPoints.Add(controlPoints);
+            for (var j = 1; j < controlPoints.Count; j++)
             {
-                temporaryPoints[j] = new Vector3[controlPoints.Length];
-                for (var i = 0; i < controlPoints.Length - j; i++)
+                var tmp = new List<Vector3>();
+                for (var i = 0; i < controlPoints.Count - j; i++)
                 {
-                    temporaryPoints[j][i] = new Vector3((1 - t) * temporaryPoints[j-1][i].x + t * temporaryPoints[j-1][i].x,
-                        (1 - t) * temporaryPoints[j-1][i].y + t * temporaryPoints[j-1][i].y, 0f);
+                    tmp.Add((1 - t) * _temporaryPoints[j - 1][i] + t * _temporaryPoints[j - 1][i + 1]);
                 }
-                max = j;
+                _temporaryPoints.Add(new List<Vector3>(tmp));
+                tmp.Clear();
             }
-            bezierSpleen.Add(temporaryPoints[max][0]);
-            
+            bezierSpleen.Add(_temporaryPoints[controlPoints.Count - 1][_temporaryPoints[controlPoints.Count - 1].Count - 1]);
         }
 
-        foreach (var variable in bezierSpleen)
+        for (var i = 0; i < controlPoints.Count; i++)
         {
-            Debug.Log(variable);
-            lineRenderer.SetPositions(bezierSpleen.ToArray());
+            controlPointLineRenderer.positionCount = controlPoints.Count;
+            controlPointLineRenderer.SetPosition(i, controlPoints[i]);
+        }
+        
+        for (var i = 0; i < bezierSpleen.Count; i++)
+        {
+            bezierLineRenderer.positionCount = bezierSpleen.Count;
+            bezierLineRenderer.SetPosition(i, bezierSpleen[i]);
         }
         
     }
