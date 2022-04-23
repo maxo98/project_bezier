@@ -9,7 +9,8 @@ public class CastelJaun : MonoBehaviour
     [SerializeField] private Vector3[] controlPoints;
      private Vector3[][] temporaryPoints = new Vector3[10][];
 
-     [SerializeField]private List<Vector3> bezierSpleen = new List<Vector3>();
+     [SerializeField]
+     private List<Vector3> bezierSpleen = new List<Vector3>();
 
     [SerializeField] 
     private int k;
@@ -32,7 +33,7 @@ public class CastelJaun : MonoBehaviour
         GetCastelJaun();
         
     }
-
+*
     private void GetCastelJaun()
     {
         for (float t = 0; t < 1; t += 1/(float)k)
