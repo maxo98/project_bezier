@@ -2,10 +2,19 @@
 /shelf/
 /workspace.xml
 # Rider ignored files
+<<<<<<< HEAD
 /projectSettingsUpdater.xml
 /modules.xml
 /.idea.project_bezier.iml
 /contentModel.xml
+=======
+/.idea.project_bezier.iml
+/contentModel.xml
+/modules.xml
+/projectSettingsUpdater.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+>>>>>>> 459d8324ae1fd52342ed0c85b7471f86639ad1f1
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
