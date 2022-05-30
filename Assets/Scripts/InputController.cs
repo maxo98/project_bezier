@@ -1,12 +1,11 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class InputController : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private LayerMask layerMask;
     [SerializeField] private GameObject spleenPrefab;
     [SerializeField] private float incrementStepSpeed;
 
@@ -18,10 +17,13 @@ public class InputController : MonoBehaviour
     private Ray _ray;
     private readonly Vector3 _offset = new Vector3(0,0,0);
 
+    private GameObject _pointSelected;
+    private bool _isPointClicked;
+
     private void Start()
     {
-        _spleenList = new List<CastelJaun> { Instantiate(spleenPrefab).GetComponent<CastelJaun>() };
-        _selectedSpleen = _spleenList[0];
+        _spleenList = new List<CastelJaun>();
+        InstantiateNewCastelJaun();
     }
 
     private void Update()
@@ -36,10 +38,92 @@ public class InputController : MonoBehaviour
     private void MousePosition()
     {
         _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (!Physics.Raycast(_ray, out var raycastHit, float.MaxValue, layerMask)) return;
-        if (!Input.GetMouseButtonDown(0)) return;
-        position = raycastHit.point + _offset;
-        _selectedSpleen.AddControlPoint(position);
+        
+        if (Input.GetMouseButtonDown(0))
+        {
+            ControlMouseClickedObject();
+        }
+
+        if (Input.GetMouseButton(0))
+        {
+            if (_isPointClicked)
+            {
+                if (Input.GetKeyDown(KeyCode.Backspace))
+                {
+                    foreach (var spleen in _spleenList.Where(spleen => spleen.RemovePoint(_pointSelected)))
+                    {
+                        break;
+                    }
+
+                    _pointSelected = null;
+                }
+                else if (Physics.Raycast(_ray, out var raycastHit, float.MaxValue, (1 << LayerMask.NameToLayer("Plane"))) && _pointSelected != null)
+                {
+                    position = _pointSelected.transform.position;
+                    position = raycastHit.point + _offset;
+                    position.z = 0.0f;
+                    _pointSelected.transform.position = position;
+
+                    foreach (var spleen in _spleenList.Where(spleen => spleen.UpdatePoint(_pointSelected)))
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!Input.GetMouseButton(0))
+        {
+            if (_pointSelected != null)
+            {
+                foreach (var spleen in _spleenList)
+                {
+                    if (spleen.HasPoint(_pointSelected))
+                    {
+                        if (spleen.IsLastOrFirst(_pointSelected))
+                        {
+                            foreach (var spleenBis in _spleenList)
+                            {
+                                if (spleenBis != spleen)
+                                {
+                                    GameObject pointBis = spleenBis.ComparePosition(_pointSelected);
+                                    
+                                    if (pointBis != null)
+                                    {
+                                        spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
+                                        _spleenList.Remove(spleenBis);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        break;
+                    }
+                }
+            }
+        
+            _isPointClicked = false;
+            _pointSelected = null;
+        }
+    }
+    
+    private void ControlMouseClickedObject()
+    {
+        if (Physics.Raycast(_ray, out var raycastHit, float.MaxValue, (1 << LayerMask.NameToLayer("Point"))  | (1 << LayerMask.NameToLayer("Plane"))))
+        {
+            if (raycastHit.transform.gameObject.layer == LayerMask.NameToLayer("Plane"))
+            {
+                position = raycastHit.point + _offset;
+                _selectedSpleen.AddControlPoint(position);
+            }
+
+            if (raycastHit.transform.gameObject.layer == LayerMask.NameToLayer("Point"))
+            {
+                _isPointClicked = true;
+                _pointSelected = raycastHit.transform.gameObject;
+            }
+        }
     }
 
     private void StepController()
@@ -56,12 +140,11 @@ public class InputController : MonoBehaviour
             StartCoroutine(SetNewStep(true));
         }
     }
-
+ 
     private void NewCurve()
     {
         if (!Input.GetKeyDown(KeyCode.Return) || _spleenList.Count > 7) return;
-        _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
-        _selectedSpleen = _spleenList[_spleenList.Count - 1];
+        InstantiateNewCastelJaun();
     }
 
     private void SelectCurve()
@@ -103,15 +186,16 @@ public class InputController : MonoBehaviour
     private void DeleteCurve()
     {
         if (_spleenList.Count == 1) return;
-        if (!Input.GetKeyDown(KeyCode.Backspace)) return;
+        if (!Input.GetKeyDown(KeyCode.Backspace) || _isPointClicked) return;
         var index = _spleenList.IndexOf(_selectedSpleen);
+        
         _spleenList.Remove(_selectedSpleen);
         Destroy(_selectedSpleen.gameObject);
+
         if (index == _spleenList.Count)
         {
             index--;
         }
-        _selectedSpleen = _spleenList[index];
     }
 
     private IEnumerator SetNewStep(bool step)
@@ -122,5 +206,11 @@ public class InputController : MonoBehaviour
             yield return new WaitForSeconds(incrementStepSpeed);
         }
         _keydownStep = false;
+    }
+    
+    private void InstantiateNewCastelJaun()
+    {
+        _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
+        _selectedSpleen = _spleenList[_spleenList.Count - 1];
     }
 }
