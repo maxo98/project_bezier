@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class CastelJaun : MonoBehaviour
@@ -16,7 +17,7 @@ public class CastelJaun : MonoBehaviour
     [SerializeField] 
     private GameObject prefabPoint;
     
-    private List<GameObject> _pointsGameObjects;
+    private List<GameObject> _pointsGameObjects = new List<GameObject>();
     
     [SerializeField] 
     private LineRenderer controlPointLineRenderer;
@@ -28,12 +29,7 @@ public class CastelJaun : MonoBehaviour
     [SerializeField] private Matrix4x4 scale;
 
     private double DELTA = 0.5;
-    
-    private void Start()
-    {
-        _pointsGameObjects = new List<GameObject>();
-    }
-    
+
     private void GetCastelJaun()
     {
         bezierSpleen.Clear();
@@ -80,6 +76,32 @@ public class CastelJaun : MonoBehaviour
         }
     }
 
+    public void C1(List<GameObject> points)
+    {
+        var lastPoint = points.Last();
+        var secondLast = points[points.Count - 2];
+
+        var newPoint = Instantiate(prefabPoint);
+
+        var newPosition = new Vector3( 2 * lastPoint.transform.position.x - secondLast.transform.position.x , 2 * lastPoint.transform.position.y - secondLast.transform.position.y,0);
+        
+        newPoint.transform.position = newPosition;
+
+        AddPoint(points.Last());
+        AddPoint(newPoint);
+    }
+    
+    public void AddPoint(GameObject point)
+    {
+        _pointsGameObjects.Add(point);
+        controlPoints.Add(point.transform.position);
+
+        if (controlPoints.Count <= 2) return;
+        if (_pointsGameObjects.Count <= 2) return;
+        
+        GetCastelJaun();
+        RenderCurves();
+    }
     public void RemovePoints()
     {
         foreach (var point in _pointsGameObjects)
@@ -146,15 +168,11 @@ public class CastelJaun : MonoBehaviour
     {
         if (_pointsGameObjects.IndexOf(pointA) == 0)
         {
-            Debug.Log("a");
-            Debug.Log($"{_pointsGameObjects.IndexOf(pointA)} <==> {_pointsGameObjects.Count - 1}");
             Reverse();
         }
         
         if (bezier.Position(pointB) == bezier.GetLength() - 1)
         {
-            Debug.Log("b");
-            Debug.Log($"{bezier.Position(pointB)} <==> {bezier.GetLength() - 1}");
             bezier.Reverse();
         }
         
@@ -192,6 +210,8 @@ public class CastelJaun : MonoBehaviour
         if (idx <= -1) 
             return false;
 
+        Debug.Log(idx);
+        
         _pointsGameObjects[idx] = point;
         controlPoints[idx] = point.transform.position;
         
@@ -203,6 +223,11 @@ public class CastelJaun : MonoBehaviour
     
     public void AddControlPoint(Vector3 point)
     {
+        if (_pointsGameObjects == null)
+        {
+            _pointsGameObjects = new List<GameObject>();
+        }
+        
         point.z = 0;
         _pointsGameObjects.Add(CreateNewPoint(point));
         controlPoints.Add(point);
