@@ -22,7 +22,7 @@ public class CastelJaun : MonoBehaviour
     [SerializeField]
     private LineRenderer bezierLineRenderer;
 
-    private double DELTA = 0.01;
+    private double DELTA = 0.5;
     
     private void Start()
     {
@@ -75,6 +75,14 @@ public class CastelJaun : MonoBehaviour
         }
     }
 
+    public void RemovePoints()
+    {
+        foreach (var point in _pointsGameObjects)
+        {
+            Destroy(point.gameObject);
+        }
+    }
+    
     public bool RemovePoint(GameObject point)
     {
         var idx = _pointsGameObjects.IndexOf(point);
@@ -86,6 +94,7 @@ public class CastelJaun : MonoBehaviour
         controlPoints.Remove(point.transform.position);
         
         Destroy(point);
+        Destroy(point.gameObject);
         
         GetCastelJaun();
         RenderCurves();
@@ -93,27 +102,62 @@ public class CastelJaun : MonoBehaviour
         return true;
     }
 
+    public int Position(GameObject point)
+    {
+        return _pointsGameObjects.IndexOf(point);
+    }
+
+    public int GetLength()
+    {
+        return _pointsGameObjects.Count;
+    }
+
+    public void Reverse()
+    {
+        _pointsGameObjects.Reverse();
+        controlPoints.Reverse();
+    }
+
+    public List<GameObject> GetPointsGameObjects()
+    {
+        return _pointsGameObjects;
+    }
+
+    public List<Vector3> GetControlPoints()
+    {
+        return controlPoints;
+    }
+    
     private bool SamePosition(GameObject pointA, GameObject pointB)
     {
-        if (pointA.transform.position.x - pointB.transform.position.x <= DELTA && 
-            pointA.transform.position.y - pointB.transform.position.y <= DELTA)
+        if ((pointA.transform.position - pointB.transform.position).sqrMagnitude < (DELTA * DELTA))
         {
             return true;
         }
-
         return false;
     }
 
     public void FusionBezier(CastelJaun bezier, GameObject pointA, GameObject pointB)
     {
-        if (_pointsGameObjects.IndexOf(pointA) == _pointsGameObjects.Count)
+        if (_pointsGameObjects.IndexOf(pointA) == 0)
         {
-            
+            Debug.Log("a");
+            Debug.Log($"{_pointsGameObjects.IndexOf(pointA)} <==> {_pointsGameObjects.Count - 1}");
+            Reverse();
         }
-        else
+        
+        if (bezier.Position(pointB) == bezier.GetLength() - 1)
         {
-            
+            Debug.Log("b");
+            Debug.Log($"{bezier.Position(pointB)} <==> {bezier.GetLength() - 1}");
+            bezier.Reverse();
         }
+        
+        bezier.GetPointsGameObjects().ForEach(item => _pointsGameObjects.Add(item));
+        bezier.GetControlPoints().ForEach(item => controlPoints.Add(item));
+
+        GetCastelJaun();
+        RenderCurves();
     }
     
     public GameObject ComparePosition(GameObject point)
@@ -154,6 +198,7 @@ public class CastelJaun : MonoBehaviour
     
     public void AddControlPoint(Vector3 point)
     {
+        Debug.Log("here");
         point.z = 0;
         _pointsGameObjects.Add(CreateNewPoint(point));
         controlPoints.Add(point);
