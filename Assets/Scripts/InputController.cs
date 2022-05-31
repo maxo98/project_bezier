@@ -34,6 +34,16 @@ public class InputController : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            C0();
+        }
+        
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            C1();
+        }
+
         ControlMouseClickedObject();
         MousePosition();
         StepController();
@@ -66,12 +76,24 @@ public class InputController : MonoBehaviour
                 _selectedPointPosition.z = 0.0f;
                 _pointSelected.transform.position = _selectedPointPosition;
 
-                foreach (var spleen in _spleenList.Where(spleen => spleen.UpdatePoint(_pointSelected)))
-                {
-                    break;
-                }
+                _spleenList.ForEach(spleen => spleen.UpdatePoint(_pointSelected));
             }
         }
+    }
+
+    private void C0()
+    {
+        InstantiateNewCastelJaun();
+
+        var points = _spleenList[_spleenList.Count - 2].GetPointsGameObjects();
+
+        _selectedSpleen.AddPoint(points.Last());
+    }
+
+    private void C1()
+    {
+        InstantiateNewCastelJaun();
+        _selectedSpleen.C1(_spleenList[_spleenList.Count - 2].GetPointsGameObjects());
     }
     
     private void ControlMouseClickedObject()
@@ -109,10 +131,12 @@ public class InputController : MonoBehaviour
                         var pointBis = spleenBis.ComparePosition(_pointSelected);
 
                         if (pointBis == null) continue;
+
+                        if (pointBis == _pointSelected) break;
+                        
                         spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
                         _spleenList.Remove(spleenBis);
-    
-                        // Destroy(_pointSelected.gameObject);
+                        
                         Destroy(spleenBis.gameObject);
                         Destroy(spleenBis);
                         _isPointClicked = false;
