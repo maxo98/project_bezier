@@ -2,17 +2,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class InputController : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GameObject spleenPrefab;
     [SerializeField] private float incrementStepSpeed;
+    [SerializeField] private GameObject content;
+    [SerializeField] private GameObject buttonCurve;
 
     public Vector3 position;
 
-    private List<CastelJaun> _spleenList;
-    private CastelJaun _selectedSpleen;
+    private static List<CastelJaun> _spleenList;
+    private static CastelJaun _selectedSpleen;
     private bool _keydownStep;
     private Ray _ray;
     private readonly Vector3 _offset = new Vector3(0,0,0);
@@ -110,8 +114,12 @@ public class InputController : MonoBehaviour
     
     private void ControlMouseClickedObject()
     {
-        if (Physics.Raycast(_ray, out var raycastHit, float.MaxValue, (1 << LayerMask.NameToLayer("Point"))  | (1 << LayerMask.NameToLayer("Plane"))))
+        if (Physics.Raycast(_ray, out var raycastHit, float.MaxValue, (1 << LayerMask.NameToLayer("Point"))  | (1 << LayerMask.NameToLayer("Plane") | (1 << LayerMask.NameToLayer("UI") ))))
         {
+            if (raycastHit.transform.gameObject.layer == LayerMask.NameToLayer("UI"))
+            {
+                return;
+            }
             if (raycastHit.transform.gameObject.layer == LayerMask.NameToLayer("Plane"))
             {
                 position = raycastHit.point + _offset;
@@ -123,6 +131,7 @@ public class InputController : MonoBehaviour
                 _isPointClicked = true;
                 _pointSelected = raycastHit.transform.gameObject;
             }
+            Debug.Log(raycastHit.transform.gameObject.layer);
         }
     }
 
@@ -147,6 +156,24 @@ public class InputController : MonoBehaviour
         InstantiateNewCastelJaun();
     }
 
+    public void NewCurveButton()
+    {
+        InstantiateNewCastelJaun();
+        
+    }
+
+    private void CreateButton(int _id)
+    {
+        GameObject _go = Instantiate(buttonCurve, content.transform);
+        _go.GetComponent<Button_ID>().id = _id;
+        TMP_Text _text = _go.GetComponentInChildren<TMP_Text>();
+        _text.text = _go.name + " " + (_id);
+    }
+
+    public static void NewSelectCurve(int id)
+    {
+        _selectedSpleen = _spleenList[id];
+    }
     private void SelectCurve()
     {
         if (Input.GetKeyDown(KeyCode.Alpha0) && _spleenList.Count > 0)
@@ -212,5 +239,6 @@ public class InputController : MonoBehaviour
     {
         _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
         _selectedSpleen = _spleenList[_spleenList.Count - 1];
+        CreateButton(_spleenList.Count - 1);
     }
 }
