@@ -16,7 +16,7 @@ public class InputController : MonoBehaviour
     [SerializeField] private LayerMask planeMask;
     [SerializeField] private LayerMask pointMask;
 
-    
+    private List<Button_ID> _buttonList;
     private static List<CastelJaun> _spleenList;
     private static CastelJaun _selectedSpleen;
     private bool _keydownStep;
@@ -29,6 +29,7 @@ public class InputController : MonoBehaviour
     private void Start()
     {
         _spleenList = new List<CastelJaun>();
+        _buttonList = new List<Button_ID>();
         InstantiateNewCastelJaun();
     }
 
@@ -110,7 +111,9 @@ public class InputController : MonoBehaviour
 
                         if (pointBis == null) continue;
                         spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
+                        RemoveButton(spleenBis);
                         _spleenList.Remove(spleenBis);
+                        
     
                         // Destroy(_pointSelected.gameObject);
                         Destroy(spleenBis.gameObject);
@@ -126,6 +129,15 @@ public class InputController : MonoBehaviour
         }
     }
 
+    private void RemoveButton(CastelJaun cj)
+    {
+        
+        int id = _spleenList.IndexOf(cj);
+        Debug.Log(id);
+        GameObject _go = _buttonList[_buttonList.Count-1].gameObject;
+        _buttonList.RemoveAt(_buttonList.Count-1);
+        Destroy(_go); 
+    }
     private void StepController()
     {
         if (_keydownStep) return;
@@ -152,12 +164,13 @@ public class InputController : MonoBehaviour
         InstantiateNewCastelJaun();
     }
 
-    private void CreateButton(int _id)
+    private Button_ID CreateButton(int _id)
     {
         GameObject _go = Instantiate(buttonCurve, content.transform);
         _go.GetComponent<Button_ID>().id = _id;
         TMP_Text _text = _go.GetComponentInChildren<TMP_Text>();
         _text.text = _go.name + " " + (_id);
+        return _go.GetComponent<Button_ID>();
     }
 
     public static void NewSelectCurve(int id)
@@ -229,7 +242,8 @@ public class InputController : MonoBehaviour
     private void InstantiateNewCastelJaun()
     {
         _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
+        _buttonList.Add(CreateButton(_spleenList.Count - 1)); 
         _selectedSpleen = _spleenList[_spleenList.Count - 1];
-        CreateButton(_spleenList.Count - 1);
+        
     }
 }
