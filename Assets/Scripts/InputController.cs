@@ -88,17 +88,18 @@ public class InputController : MonoBehaviour
                         {
                             foreach (var spleenBis in _spleenList)
                             {
-                                if (spleenBis != spleen)
-                                {
-                                    GameObject pointBis = spleenBis.ComparePosition(_pointSelected);
-                                    
-                                    if (pointBis != null)
-                                    {
-                                        spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
-                                        _spleenList.Remove(spleenBis);
-                                        break;
-                                    }
-                                }
+                                if (spleenBis == spleen) continue;
+                                GameObject pointBis = spleenBis.ComparePosition(_pointSelected);
+
+                                if (pointBis == null) continue;
+                                spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
+                                _spleenList.Remove(spleenBis);
+    
+                                // Destroy(_pointSelected.gameObject);
+                                Destroy(spleenBis.gameObject);
+                                Destroy(spleenBis);
+
+                                break;
                             }
                         }
 
@@ -217,6 +218,7 @@ public class InputController : MonoBehaviour
         var index = _spleenList.IndexOf(_selectedSpleen);
         
         _spleenList.Remove(_selectedSpleen);
+        _selectedSpleen.RemovePoints();
         Destroy(_selectedSpleen.gameObject);
 
         if (index == _spleenList.Count)
