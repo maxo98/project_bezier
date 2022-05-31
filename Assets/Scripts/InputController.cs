@@ -24,7 +24,7 @@ public class InputController : MonoBehaviour
 
     private GameObject _pointSelected;
     private bool _isPointClicked;
-    private  Vector3 _selectedPointPosition;
+    private Vector3 _selectedPointPosition;
 
     private void Start()
     {
@@ -46,7 +46,7 @@ public class InputController : MonoBehaviour
     private void MousePosition()
     {
         _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        
+
         if (_isPointClicked)
         {
             if (Input.GetKeyDown(KeyCode.Backspace))
@@ -55,11 +55,12 @@ public class InputController : MonoBehaviour
                 {
                     break;
                 }
+
                 _isPointClicked = false;
                 _pointSelected = null;
             }
-            else if (Input.GetMouseButton(1) && 
-                     Physics.Raycast(_ray, out var raycastHit, float.MaxValue, planeMask) && 
+            else if (Input.GetMouseButton(1) &&
+                     Physics.Raycast(_ray, out var raycastHit, float.MaxValue, planeMask) &&
                      _pointSelected != null)
             {
                 _selectedPointPosition = _pointSelected.transform.position;
@@ -74,7 +75,18 @@ public class InputController : MonoBehaviour
             }
         }
     }
-    
+
+    public void NewDestroyPoint()
+    {
+        foreach (var spleen in _spleenList.Where(spleen => spleen.RemovePoint(_pointSelected)))
+        {
+            break;
+        }
+
+        _isPointClicked = false;
+        _pointSelected = null;
+    }
+
     private void ControlMouseClickedObject()
     {
         _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -82,16 +94,15 @@ public class InputController : MonoBehaviour
         {
             _selectedPointPosition = raycastHit1.point;
             _selectedSpleen.AddControlPoint(_selectedPointPosition);
-            if(_pointSelected != null)
+            if (_pointSelected != null)
                 _pointSelected.GetComponent<Point>().UnSelect();
             _isPointClicked = true;
             _pointSelected = _selectedSpleen.GetPointsGameObjects()[_selectedSpleen.GetPointsGameObjects().Count - 1];
             _pointSelected.GetComponent<Point>().Select();
-            
         }
         else if (Input.GetMouseButtonDown(1) && Physics.Raycast(_ray, out var raycastHit2, float.MaxValue, pointMask))
         {
-            if(_pointSelected != null)
+            if (_pointSelected != null)
                 _pointSelected.GetComponent<Point>().UnSelect();
             _isPointClicked = true;
             _pointSelected = raycastHit2.transform.gameObject;
@@ -113,8 +124,8 @@ public class InputController : MonoBehaviour
                         spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
                         RemoveButton(spleenBis);
                         _spleenList.Remove(spleenBis);
-                        
-    
+
+
                         // Destroy(_pointSelected.gameObject);
                         Destroy(spleenBis.gameObject);
                         Destroy(spleenBis);
@@ -124,6 +135,7 @@ public class InputController : MonoBehaviour
                         break;
                     }
                 }
+
                 break;
             }
         }
@@ -131,13 +143,18 @@ public class InputController : MonoBehaviour
 
     private void RemoveButton(CastelJaun cj)
     {
-        
         int id = _spleenList.IndexOf(cj);
         Debug.Log(id);
-        GameObject _go = _buttonList[_buttonList.Count-1].gameObject;
-        _buttonList.RemoveAt(_buttonList.Count-1);
-        Destroy(_go); 
+        GameObject _go = _buttonList[_buttonList.Count - 1].gameObject;
+        _buttonList.RemoveAt(_buttonList.Count - 1);
+        Destroy(_go);
     }
+
+    public void NewStepController(bool choice)
+    {
+        StartCoroutine(SetNewStep(choice));
+    }
+
     private void StepController()
     {
         if (_keydownStep) return;
@@ -152,7 +169,7 @@ public class InputController : MonoBehaviour
             StartCoroutine(SetNewStep(true));
         }
     }
- 
+
     private void NewCurve()
     {
         if (!Input.GetKeyDown(KeyCode.Return) || _spleenList.Count > 7) return;
@@ -177,36 +194,44 @@ public class InputController : MonoBehaviour
     {
         _selectedSpleen = _spleenList[id];
     }
+
     private void SelectCurve()
     {
         if (Input.GetKeyDown(KeyCode.Alpha0) && _spleenList.Count > 0)
         {
             _selectedSpleen = _spleenList[0];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha1) && _spleenList.Count > 1)
         {
             _selectedSpleen = _spleenList[1];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha2) && _spleenList.Count > 2)
         {
             _selectedSpleen = _spleenList[2];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha3) && _spleenList.Count > 3)
         {
             _selectedSpleen = _spleenList[3];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha4) && _spleenList.Count > 4)
         {
             _selectedSpleen = _spleenList[4];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha5) && _spleenList.Count > 5)
         {
             _selectedSpleen = _spleenList[5];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha6) && _spleenList.Count > 6)
         {
             _selectedSpleen = _spleenList[6];
         }
+
         if (Input.GetKeyDown(KeyCode.Alpha7) && _spleenList.Count > 7)
         {
             _selectedSpleen = _spleenList[7];
@@ -218,7 +243,7 @@ public class InputController : MonoBehaviour
         if (_spleenList.Count == 1) return;
         if (!Input.GetKeyDown(KeyCode.Backspace) || _isPointClicked) return;
         var index = _spleenList.IndexOf(_selectedSpleen);
-        
+
         _spleenList.Remove(_selectedSpleen);
         _selectedSpleen.RemovePoints();
         Destroy(_selectedSpleen.gameObject);
@@ -236,14 +261,14 @@ public class InputController : MonoBehaviour
             _selectedSpleen.ChangeStep(step);
             yield return new WaitForSeconds(incrementStepSpeed);
         }
+
         _keydownStep = false;
     }
-    
+
     private void InstantiateNewCastelJaun()
     {
         _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
-        _buttonList.Add(CreateButton(_spleenList.Count - 1)); 
+        _buttonList.Add(CreateButton(_spleenList.Count - 1));
         _selectedSpleen = _spleenList[_spleenList.Count - 1];
-        
     }
 }

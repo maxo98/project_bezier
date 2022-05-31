@@ -211,6 +211,7 @@ public class CastelJaun : MonoBehaviour
 
     public void ChangeStep(bool step)
     {
+        
         k = step ? k + 1 : k - 1;
         
         if (controlPoints.Count <= 2) return;
