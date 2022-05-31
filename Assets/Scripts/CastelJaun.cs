@@ -198,7 +198,6 @@ public class CastelJaun : MonoBehaviour
     
     public void AddControlPoint(Vector3 point)
     {
-        Debug.Log("here");
         point.z = 0;
         _pointsGameObjects.Add(CreateNewPoint(point));
         controlPoints.Add(point);

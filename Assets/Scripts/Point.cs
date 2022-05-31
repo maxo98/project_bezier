@@ -1,25 +1,24 @@
 using UnityEngine;
 public class Point : MonoBehaviour
 {
-    private Material _pointMaterial;
+    [SerializeField] private MeshRenderer pointMesh;
     
     private Color _pointDefaultColor;
     private Color _pointHoverColor;
 
     private void Awake()
     {
-        _pointMaterial = GetComponent<MeshRenderer>().material;
-        _pointDefaultColor = _pointMaterial.color;
-        _pointHoverColor = Color.red;
+        _pointDefaultColor = pointMesh.material.color;
+        _pointHoverColor = Color.green;
     }
     
-    private void OnMouseOver()
+    public void Select()
     {
-        _pointMaterial.color = _pointHoverColor;
+        pointMesh.material.color = _pointHoverColor;
     }
 
-    private void OnMouseExit()
+    public void UnSelect()
     {
-        _pointMaterial.color = _pointDefaultColor;
+        pointMesh.material.color = _pointDefaultColor;
     }
 }
