@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,6 +22,10 @@ public class CastelJaun : MonoBehaviour
     private LineRenderer controlPointLineRenderer;
     [SerializeField]
     private LineRenderer bezierLineRenderer;
+    
+    [SerializeField] private Matrix4x4 translate;
+    [SerializeField] private Matrix4x4 rotate;
+    [SerializeField] private Matrix4x4 scale;
 
     private double DELTA = 0.5;
     
@@ -213,7 +218,7 @@ public class CastelJaun : MonoBehaviour
     {
         
         k = step ? k + 1 : k - 1;
-        
+        k = k <= 1 ? 1 : k;
         if (controlPoints.Count <= 2) return;
         if (_pointsGameObjects.Count <= 2) return;
         
@@ -227,4 +232,40 @@ public class CastelJaun : MonoBehaviour
         point.transform.position = position;
         return point;
     }
+
+    public void Translate(float x, float y, float z)
+    {
+        var translateVec = new Vector3(x, y, z);
+        translate = new Matrix4x4(new Vector4(1, 0, 0, 0), new Vector4(0, 1 , 0, 0),
+            new Vector4(0, 0, 1, 0), new Vector4(x, y, z, 1));
+        foreach (var controlPoint in _pointsGameObjects)
+        {
+            controlPoint.transform.position += translateVec;
+            //controlPoint.transform.position = translate.MultiplyVector(controlPoint.transform.position);
+        }
+
+        for (var i = 0; i < controlPoints.Count; i++)
+        {
+            //controlPoints[i] = translate.MultiplyVector(controlPoints[i]);
+            controlPoints[i] += translateVec;
+        }
+        
+        GetCastelJaun();
+        RenderCurves();
+    }
+    
+    public void Rotate(float angle)
+    {
+        rotate = new Matrix4x4(new Vector4((float)Math.Cos(angle), (float)-Math.Sin(angle), 0, 0),
+            new Vector4((float)Math.Sin(angle), (float)Math.Cos(angle), 0, 0), 
+            new Vector4(0, 0, 1, 0),
+            new Vector4(0, 0, 0, 1));
+    }
+    
+    public void Scale(float x, float y, float z)
+    {
+        scale = new Matrix4x4(new Vector4(x, 0, 0, 0), new Vector4(0, y, 0, 0), 
+            new Vector4(0, 0, z, 0), new Vector4(0, 0, 0, 1));
+    }
+    
 }

@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Assertions.Must;
 
 public class InputController : MonoBehaviour
 {
@@ -26,11 +28,16 @@ public class InputController : MonoBehaviour
     private bool _isPointClicked;
     private Vector3 _selectedPointPosition;
 
+    private bool _isTranslating;
+    private Vector3 _prevMousePos;
+
     private void Start()
     {
         _spleenList = new List<CastelJaun>();
         _buttonList = new List<Button_ID>();
         InstantiateNewCastelJaun();
+        _isTranslating = false;
+        _prevMousePos = Vector3.zero;
     }
 
     private void Update()
@@ -41,12 +48,12 @@ public class InputController : MonoBehaviour
         NewCurve();
         SelectCurve();
         DeleteCurve();
+        
     }
 
     private void MousePosition()
     {
         _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
         if (_isPointClicked)
         {
             if (Input.GetKeyDown(KeyCode.Backspace))
@@ -74,6 +81,7 @@ public class InputController : MonoBehaviour
                 }
             }
         }
+        
     }
 
     public void NewDestroyPoint()
@@ -90,53 +98,81 @@ public class InputController : MonoBehaviour
     private void ControlMouseClickedObject()
     {
         _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (Input.GetMouseButtonDown(0) && Physics.Raycast(_ray, out var raycastHit1, float.MaxValue, planeMask))
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.C))
         {
-            _selectedPointPosition = raycastHit1.point;
-            _selectedSpleen.AddControlPoint(_selectedPointPosition);
-            if (_pointSelected != null)
-                _pointSelected.GetComponent<Point>().UnSelect();
-            _isPointClicked = true;
-            _pointSelected = _selectedSpleen.GetPointsGameObjects()[_selectedSpleen.GetPointsGameObjects().Count - 1];
-            _pointSelected.GetComponent<Point>().Select();
-        }
-        else if (Input.GetMouseButtonDown(1) && Physics.Raycast(_ray, out var raycastHit2, float.MaxValue, pointMask))
-        {
-            if (_pointSelected != null)
-                _pointSelected.GetComponent<Point>().UnSelect();
-            _isPointClicked = true;
-            _pointSelected = raycastHit2.transform.gameObject;
-            _pointSelected.GetComponent<Point>().Select();
-        }
-        else if (Input.GetMouseButtonUp(1))
-        {
-            if (_pointSelected == null) return;
-            foreach (var spleen in _spleenList.Where(spleen => spleen.HasPoint(_pointSelected)))
+            if (Input.GetKeyDown(KeyCode.W))
             {
-                if (spleen.IsLastOrFirst(_pointSelected))
+                Debug.Log("W pressed");
+                _isTranslating = true;
+                Physics.Raycast(_ray, out var raycastHit, float.MaxValue, planeMask);
+                _prevMousePos = raycastHit.point;
+            }
+        }
+        else if (Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.X) || Input.GetKeyUp(KeyCode.C))
+        {
+            if (Input.GetKeyUp(KeyCode.W) && _isTranslating)
+            {
+                _isTranslating = false;
+                Physics.Raycast(_ray, out var raycastHit, float.MaxValue, planeMask);
+                var curMousePos = raycastHit.point;
+                var deltaPos = new Vector3(curMousePos.x - _prevMousePos.x,
+                    curMousePos.y - _prevMousePos.y, 0);
+                _selectedSpleen.Translate(deltaPos.x, deltaPos.y, deltaPos.z);
+            }
+        }
+        else if(!_isTranslating)
+        {
+            if (Input.GetMouseButtonDown(0) && Physics.Raycast(_ray, out var raycastHit1, float.MaxValue, planeMask))
+            {
+                _selectedPointPosition = raycastHit1.point;
+                _selectedSpleen.AddControlPoint(_selectedPointPosition);
+                if (_pointSelected != null)
+                    _pointSelected.GetComponent<Point>().UnSelect();
+                _isPointClicked = true;
+                _pointSelected =
+                    _selectedSpleen.GetPointsGameObjects()[_selectedSpleen.GetPointsGameObjects().Count - 1];
+                _pointSelected.GetComponent<Point>().Select();
+
+            }
+            else if (Input.GetMouseButtonDown(1) &&
+                     Physics.Raycast(_ray, out var raycastHit2, float.MaxValue, pointMask))
+            {
+                if (_pointSelected != null)
+                    _pointSelected.GetComponent<Point>().UnSelect();
+                _isPointClicked = true;
+                _pointSelected = raycastHit2.transform.gameObject;
+                _pointSelected.GetComponent<Point>().Select();
+            }
+            else if (Input.GetMouseButtonUp(1))
+            {
+                if (_pointSelected == null) return;
+                foreach (var spleen in _spleenList.Where(spleen => spleen.HasPoint(_pointSelected)))
                 {
-                    foreach (var spleenBis in _spleenList)
+                    if (spleen.IsLastOrFirst(_pointSelected))
                     {
-                        if (spleenBis == spleen) continue;
-                        var pointBis = spleenBis.ComparePosition(_pointSelected);
+                        foreach (var spleenBis in _spleenList)
+                        {
+                            if (spleenBis == spleen) continue;
+                            var pointBis = spleenBis.ComparePosition(_pointSelected);
 
-                        if (pointBis == null) continue;
-                        spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
-                        RemoveButton(spleenBis);
-                        _spleenList.Remove(spleenBis);
+                            if (pointBis == null) continue;
+                            spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
+                            RemoveButton(spleenBis);
+                            _spleenList.Remove(spleenBis);
 
 
-                        // Destroy(_pointSelected.gameObject);
-                        Destroy(spleenBis.gameObject);
-                        Destroy(spleenBis);
-                        _isPointClicked = false;
-                        _pointSelected.GetComponent<Point>().UnSelect();
-                        _pointSelected = null;
-                        break;
+                            // Destroy(_pointSelected.gameObject);
+                            Destroy(spleenBis.gameObject);
+                            Destroy(spleenBis);
+                            _isPointClicked = false;
+                            _pointSelected.GetComponent<Point>().UnSelect();
+                            _pointSelected = null;
+                            break;
+                        }
                     }
-                }
 
-                break;
+                    break;
+                }
             }
         }
     }
