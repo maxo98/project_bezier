@@ -47,10 +47,61 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   controlPoints: []
   bezierSpleen: []
-  k: 50
+  k: 100
   prefabPoint: {fileID: 154482485520003696, guid: f3073953ee8cef0429bcb55827183734, type: 3}
   controlPointLineRenderer: {fileID: 445160788447483134}
   bezierLineRenderer: {fileID: 445160788732803406}
+  translate:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
+  rotate:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
+  scale:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
 --- !u!1 &445160788447483135
 GameObject:
   m_ObjectHideFlags: 0

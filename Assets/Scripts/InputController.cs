@@ -1,15 +1,17 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
-using UnityEngine.Assertions.Must;
+using UnityEngine.EventSystems;
 
 public class InputController : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
+    [SerializeField] private Camera formCamera;
+    [SerializeField] private Camera freeMainCamera;
+    [SerializeField] private Camera FreeFormCamera;
+    
     [SerializeField] private GameObject spleenPrefab;
     [SerializeField] private float incrementStepSpeed;
     [SerializeField] private GameObject content;
@@ -18,12 +20,20 @@ public class InputController : MonoBehaviour
     [SerializeField] private LayerMask planeMask;
     [SerializeField] private LayerMask pointMask;
 
+    [SerializeField] private LayerMask planeFormMask;
+    [SerializeField] private LayerMask pointFormMask;
+
     private List<Button_ID> _buttonList;
     private static List<CastelJaun> _spleenList;
+    private static CastelJaun _spleenForm;
     private static CastelJaun _selectedSpleen;
+    private Camera _currentCamera;
     private bool _keydownStep;
     private Ray _ray;
+    private Ray _rayForm;
 
+    [SerializeField] private GameObject mesh;
+    
     private GameObject _pointSelected;
     private bool _isPointClicked;
     private Vector3 _selectedPointPosition;
@@ -31,6 +41,9 @@ public class InputController : MonoBehaviour
     private bool _isTranslating;
     private Vector3 _prevMousePos;
 
+    private GameObject _meshRevolution = null;
+    private GameObject _meshExtrusion = null;
+    
     private void Start()
     {
         _spleenList = new List<CastelJaun>();
@@ -38,10 +51,30 @@ public class InputController : MonoBehaviour
         InstantiateNewCastelJaun();
         _isTranslating = false;
         _prevMousePos = Vector3.zero;
+        _currentCamera = formCamera;
     }
 
     private void Update()
     {
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+        
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            var newMesh = Instantiate(mesh, new Vector3(0, 0, 0), Quaternion.identity);
+            newMesh.GetComponent<BezierMesh>().BuildMesh(_spleenList[_spleenList.Count - 1].gameObject, spleenPrefab);
+            _meshRevolution = newMesh;
+        }
+
+        if (Input.GetKeyDown(KeyCode.N))
+        {
+            var newMesh = Instantiate(mesh, new Vector3(0, 0, 0), Quaternion.identity);
+            newMesh.GetComponent<BezierMesh>().BuildMeshAroundBezier(_spleenForm, _spleenList[_spleenList.Count - 1].gameObject, spleenPrefab);
+            _meshExtrusion = newMesh;
+        }
+        
         if (Input.GetKeyDown(KeyCode.A))
         {
             C0();
@@ -52,6 +85,22 @@ public class InputController : MonoBehaviour
             C1();
         }
 
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            if (mainCamera.gameObject.activeSelf)
+            {
+                mainCamera.gameObject.SetActive(false);
+                formCamera.gameObject.SetActive(true);
+                _currentCamera = formCamera;
+            }
+            else
+            {
+                formCamera.gameObject.SetActive(false);
+                mainCamera.gameObject.SetActive(true);
+                _currentCamera = mainCamera;
+            }
+        }
+        
         ControlMouseClickedObject();
         MousePosition();
         StepController();
@@ -60,10 +109,11 @@ public class InputController : MonoBehaviour
         DeleteCurve();
         
     }
-
+ 
     private void MousePosition()
     {
-        _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        _ray = _currentCamera.ScreenPointToRay(Input.mousePosition);
+        
         if (_isPointClicked)
         {
             if (Input.GetKeyDown(KeyCode.Backspace))
@@ -86,6 +136,17 @@ public class InputController : MonoBehaviour
                 _pointSelected.transform.position = _selectedPointPosition;
 
                 _spleenList.ForEach(spleen => spleen.UpdatePoint(_pointSelected));
+            } 
+            else if (Input.GetMouseButton(1) &&
+                     Physics.Raycast(_ray, out var raycastHitForm, float.MaxValue, planeFormMask) &&
+                     _pointSelected != null)
+            {
+                _selectedPointPosition = _pointSelected.transform.position;
+                _selectedPointPosition = raycastHitForm.point;
+                _selectedPointPosition.x = 0.0f;
+                _pointSelected.transform.position = _selectedPointPosition;
+
+                _spleenForm.UpdatePoint(_pointSelected);
             }
         }
         
@@ -119,12 +180,12 @@ public class InputController : MonoBehaviour
 
     private void ControlMouseClickedObject()
     {
-        _ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        _ray = _currentCamera.ScreenPointToRay(Input.mousePosition);
+
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.C))
         {
             if (Input.GetKeyDown(KeyCode.W))
             {
-                Debug.Log("W pressed");
                 _isTranslating = true;
                 Physics.Raycast(_ray, out var raycastHit, float.MaxValue, planeMask);
                 _prevMousePos = raycastHit.point;
@@ -147,6 +208,7 @@ public class InputController : MonoBehaviour
             if (Input.GetMouseButtonDown(0) && Physics.Raycast(_ray, out var raycastHit1, float.MaxValue, planeMask))
             {
                 _selectedPointPosition = raycastHit1.point;
+                _selectedPointPosition.z = 0;
                 _selectedSpleen.AddControlPoint(_selectedPointPosition);
                 if (_pointSelected != null)
                     _pointSelected.GetComponent<Point>().UnSelect();
@@ -155,14 +217,25 @@ public class InputController : MonoBehaviour
                     _selectedSpleen.GetPointsGameObjects()[_selectedSpleen.GetPointsGameObjects().Count - 1];
                 _pointSelected.GetComponent<Point>().Select();
 
+            } 
+            else if (Input.GetMouseButtonDown(0) && Physics.Raycast(_ray, out var raycastHit2, float.MaxValue, planeFormMask))
+            {
+                _selectedPointPosition = raycastHit2.point;
+                _selectedPointPosition.x = 0;
+                _spleenForm.AddControlPoint(_selectedPointPosition);
+                if (_pointSelected != null)
+                    _pointSelected.GetComponent<Point>().UnSelect();
+                _isPointClicked = true;
+                _pointSelected =
+                    _spleenForm.GetPointsGameObjects()[_spleenForm.GetPointsGameObjects().Count - 1];
+                _pointSelected.GetComponent<Point>().Select();
             }
-            else if (Input.GetMouseButtonDown(1) &&
-                     Physics.Raycast(_ray, out var raycastHit2, float.MaxValue, pointMask))
+            else if (Input.GetMouseButtonDown(1) && Physics.Raycast(_ray, out var raycastHit3, float.MaxValue, pointMask))
             {
                 if (_pointSelected != null)
                     _pointSelected.GetComponent<Point>().UnSelect();
                 _isPointClicked = true;
-                _pointSelected = raycastHit2.transform.gameObject;
+                _pointSelected = raycastHit3.transform.gameObject;
                 _pointSelected.GetComponent<Point>().Select();
             }
             else if (Input.GetMouseButtonUp(1))
@@ -184,10 +257,8 @@ public class InputController : MonoBehaviour
                         spleen.FusionBezier(spleenBis, _pointSelected, pointBis);
                         RemoveButton(spleenBis);
                         _spleenList.Remove(spleenBis);
-                        
 
-
-                            // Destroy(_pointSelected.gameObject);
+                        // Destroy(_pointSelected.gameObject);
                             Destroy(spleenBis.gameObject);
                             Destroy(spleenBis);
                             _isPointClicked = false;
@@ -329,8 +400,82 @@ public class InputController : MonoBehaviour
 
     private void InstantiateNewCastelJaun()
     {
+        _spleenForm = Instantiate(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
         _spleenList.Add(Instantiate(spleenPrefab).GetComponent<CastelJaun>());
         _buttonList.Add(CreateButton(_spleenList.Count - 1));
         _selectedSpleen = _spleenList[_spleenList.Count - 1];
+    }
+
+    public void DestroyMeshExtrusion()
+    {
+        if (_meshExtrusion != null)
+        {
+            Destroy(_meshExtrusion);
+            _meshExtrusion = null;
+        }        
+    }
+    
+    public void DestroyMeshRevolution()
+    {
+        if (_meshRevolution != null)
+        {
+            Destroy(_meshRevolution);
+            _meshRevolution = null;
+        }
+    }
+    public void BuildNewMeshRevolution()
+    {
+        if (_meshRevolution != null)
+        {
+            Destroy(_meshRevolution);
+        }
+        var newMesh = Instantiate(mesh, new Vector3(0, 0, 0), Quaternion.identity);
+        newMesh.GetComponent<BezierMesh>().BuildMesh(_spleenList[_spleenList.Count - 1].gameObject, spleenPrefab);
+        _meshRevolution = newMesh;
+    }
+    
+    public void BuildNewMeshExtrusion()
+    {
+        if (_meshExtrusion != null)
+        {
+            Destroy(_meshExtrusion);
+        }
+        var newMesh = Instantiate(mesh, new Vector3(0, 0, 0), Quaternion.identity);
+        newMesh.GetComponent<BezierMesh>().BuildMeshAroundBezier(_spleenForm, _spleenList[_spleenList.Count - 1].gameObject, spleenPrefab);
+        _meshExtrusion = newMesh;
+    }
+
+    public void SwitchCameraFreeForm()
+    {
+        mainCamera.gameObject.SetActive(false);
+        formCamera.gameObject.SetActive(false);
+        freeMainCamera.gameObject.SetActive(false);
+        FreeFormCamera.gameObject.SetActive(true);
+    }
+    
+    public void SwitchCameraFree()
+    {
+        mainCamera.gameObject.SetActive(false);
+        formCamera.gameObject.SetActive(false);
+        freeMainCamera.gameObject.SetActive(true);
+        FreeFormCamera.gameObject.SetActive(false);
+    }
+    
+    public void SwitchCameraForm()
+    {        
+        mainCamera.gameObject.SetActive(false);
+        formCamera.gameObject.SetActive(true);
+        freeMainCamera.gameObject.SetActive(false);
+        FreeFormCamera.gameObject.SetActive(false);
+        _currentCamera = formCamera;
+    }
+    
+    public void SwitchCamera()
+    {
+        mainCamera.gameObject.SetActive(true);
+        formCamera.gameObject.SetActive(false);
+        freeMainCamera.gameObject.SetActive(false);
+        FreeFormCamera.gameObject.SetActive(false);
+        _currentCamera = mainCamera;
     }
 }
